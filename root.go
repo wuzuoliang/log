@@ -41,13 +41,25 @@ func SetOutLevel(level Lvl) {
 	root.SetOutLevel(level)
 }
 
+func GetLogLevel() Lvl {
+	return root.setLv
+}
+
 // The following functions bypass the exported logger methods (logger.Debug,
 // etc.) to keep the call depth the same for all paths to logger.write so
 // runtime.Caller(2) always refers to the call site in client code.
 
+func IsDebugEnable() bool {
+	return root.setLv <= LvlDebug
+}
+
 // Debug is a convenient alias for Root().Debug
 func Debug(msg string, ctx ...interface{}) {
 	root.write(msg, LvlDebug, ctx)
+}
+
+func IsInfoEnable() bool {
+	return root.setLv <= LvlInfo
 }
 
 // Info is a convenient alias for Root().Info
@@ -55,14 +67,26 @@ func Info(msg string, ctx ...interface{}) {
 	root.write(msg, LvlInfo, ctx)
 }
 
+func IsWarnEnable() bool {
+	return root.setLv <= LvlWarn
+}
+
 // Warn is a convenient alias for Root().Warn
 func Warn(msg string, ctx ...interface{}) {
 	root.write(msg, LvlWarn, ctx)
 }
 
+func IsErrorEnable() bool {
+	return root.setLv <= LvlError
+}
+
 // Error is a convenient alias for Root().Error
 func Error(msg string, ctx ...interface{}) {
 	root.write(msg, LvlError, ctx)
+}
+
+func IsCritEnable() bool {
+	return root.setLv <= LvlCrit
 }
 
 // Crit is a convenient alias for Root().Crit
