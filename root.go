@@ -50,7 +50,7 @@ func GetLogLevel() Lvl {
 // runtime.Caller(2) always refers to the call site in client code.
 
 func IsDebugEnable() bool {
-	return root.setLv <= LvlDebug
+	return root.setLv >= LvlDebug
 }
 
 // Debug is a convenient alias for Root().Debug
@@ -59,7 +59,7 @@ func Debug(msg string, ctx ...interface{}) {
 }
 
 func IsInfoEnable() bool {
-	return root.setLv <= LvlInfo
+	return root.setLv >= LvlInfo
 }
 
 // Info is a convenient alias for Root().Info
@@ -68,7 +68,7 @@ func Info(msg string, ctx ...interface{}) {
 }
 
 func IsWarnEnable() bool {
-	return root.setLv <= LvlWarn
+	return root.setLv >= LvlWarn
 }
 
 // Warn is a convenient alias for Root().Warn
@@ -77,7 +77,7 @@ func Warn(msg string, ctx ...interface{}) {
 }
 
 func IsErrorEnable() bool {
-	return root.setLv <= LvlError
+	return root.setLv >= LvlError
 }
 
 // Error is a convenient alias for Root().Error
@@ -86,7 +86,7 @@ func Error(msg string, ctx ...interface{}) {
 }
 
 func IsCritEnable() bool {
-	return root.setLv <= LvlCrit
+	return root.setLv >= LvlCrit
 }
 
 // Crit is a convenient alias for Root().Crit

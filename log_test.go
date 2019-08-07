@@ -516,3 +516,13 @@ func TestConcurrent(t *testing.T) {
 		}
 	}
 }
+
+
+func TestCanLog(t *testing.T){
+
+	logger := newLog15()
+	logger.SetOutLevel(LvlDebug)
+
+
+	t.Log()
+}

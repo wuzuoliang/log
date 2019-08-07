@@ -120,6 +120,7 @@ The default rotate  parameters:
 func main() {
     h,_ := log.FileHandlerRotate("./app.log", log.LogfmtFormat())
     log.Root().SetHandler(h)
+    
 
     go func(){
       for {
@@ -133,6 +134,13 @@ func main() {
         log.Info("page accessed", "path", Path, "user_id", i)
         time.Sleep(50 * time.Millisecond)
     }
+    
+     for i:=1; i < 1000000 ; i++ {
+            if IsInfoEnable(){
+               log.Info("page accessed", "path", Path, "user_id", i)
+             }
+             time.Sleep(50 * time.Millisecond)
+       }
 }
 ```
 
