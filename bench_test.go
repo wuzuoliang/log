@@ -205,3 +205,26 @@ func BenchmarkLog15WithoutFields(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkCanLog(b *testing.B) {
+	logger := newLog15()
+	logger.SetOutLevel(LvlDebug)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Debug("Go fast.sasdsadqwezxcadqewqjdfbuhqjewqweqopeioip1i2312321jjhfoasqweqw", "123", "456", "789", "890")
+		}
+	})
+}
+func BenchmarkLog(b *testing.B) {
+	logger := newLog15()
+	logger.SetOutLevel(LvlDebug)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if logger.GetOutLevel() <= LvlInfo {
+				logger.Debug("Go fast.sasdsadqwezxcadqewqjdfbuhqjewqweqopeioip1i2312321jjhfoasqweqw", "123", "456", "789", "890")
+			}
+		}
+	})
+}

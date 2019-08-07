@@ -1,7 +1,6 @@
 package log
 
 import (
-	"fmt"
 	"github.com/go-stack/stack"
 	"os"
 	"time"
@@ -45,25 +44,6 @@ func (l Lvl) String() string {
 		return "crit"
 	default:
 		panic("bad level")
-	}
-}
-
-// Returns the appropriate Lvl from a string name.
-// Useful for parsing command line args and configuration files.
-func LvlFromString(lvlString string) (Lvl, error) {
-	switch lvlString {
-	case "debug", "dbug":
-		return LvlDebug, nil
-	case "info":
-		return LvlInfo, nil
-	case "warn":
-		return LvlWarn, nil
-	case "error", "eror":
-		return LvlError, nil
-	case "crit":
-		return LvlCrit, nil
-	default:
-		return LvlDebug, fmt.Errorf("Unknown level: %v", lvlString)
 	}
 }
 
@@ -115,6 +95,7 @@ type Logger interface {
 
 	// Set setLv value. only level below this can be output
 	SetOutLevel(l Lvl)
+	GetOutLevel() Lvl
 
 	// Log a message at the given level with context key/value pairs
 	Debug(msg string, ctx ...interface{})
@@ -146,7 +127,7 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
 				Call: callKey,
 			},
 		})
-	} // --[stevenmi]
+	}
 }
 
 func (l *logger) writeMeta(msg string, lvl Lvl, metaType Meta, metaData interface{}, ctx []interface{}) {
@@ -177,27 +158,6 @@ func (l *logger) writeMeta(msg string, lvl Lvl, metaType Meta, metaData interfac
 	}
 }
 
-func (l *logger) writeGorm(msg string, lvl Lvl, caller string, ctx []interface{}) {
-	if lvl <= l.setLv {
-		newCtx := make([]interface{}, 0, len(ctx))
-		newCtx = append(newCtx, ctx...)
-
-		l.h.Log(&Record{
-			Time:         time.Now(),
-			Lvl:          lvl,
-			Msg:          msg,
-			Ctx:          newContext(l.ctx, newCtx),
-			CustomCaller: caller,
-			KeyNames: RecordKeyNames{
-				Time: timeKey,
-				Msg:  msgKey,
-				Lvl:  lvlKey,
-				Call: callKey,
-			},
-		})
-	}
-}
-
 func (l *logger) New(ctx ...interface{}) Logger {
 	//child := &logger{newContext(l.ctx, ctx), new(swapHandler)}
 	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlDebug}
@@ -213,12 +173,15 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 	return newCtx
 }
 
-// implement , set the Level --[stevenmi]
 func (l *logger) SetOutLevel(level Lvl) {
 	if level >= LvlCrit && level <= LvlDebug {
 		l.setLv = level
 	}
 	return
+}
+
+func (l *logger) GetOutLevel() Lvl {
+	return l.setLv
 }
 
 func (l *logger) Debug(msg string, ctx ...interface{}) {
