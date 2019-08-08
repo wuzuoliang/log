@@ -130,34 +130,6 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
 	}
 }
 
-func (l *logger) writeMeta(msg string, lvl Lvl, metaType Meta, metaData interface{}, ctx []interface{}) {
-	if lvl <= l.setLv {
-		metaK := metaType.String()
-		metaV := formatLogfmtValue(metaData)
-
-		newCtx := make([]interface{}, 0, len(ctx)+2)
-		newCtx = append(newCtx, metaK)
-		newCtx = append(newCtx, metaV)
-		newCtx = append(newCtx, ctx...)
-
-		l.h.Log(&Record{
-			Time:  time.Now(),
-			Lvl:   lvl,
-			Msg:   msg,
-			MetaK: metaK,
-			MetaV: metaV,
-			Ctx:   newContext(l.ctx, newCtx),
-			Call:  stack.Caller(2),
-			KeyNames: RecordKeyNames{
-				Time: timeKey,
-				Msg:  msgKey,
-				Lvl:  lvlKey,
-				Call: callKey,
-			},
-		})
-	}
-}
-
 func (l *logger) New(ctx ...interface{}) Logger {
 	//child := &logger{newContext(l.ctx, ctx), new(swapHandler)}
 	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlDebug}
@@ -177,7 +149,6 @@ func (l *logger) SetOutLevel(level Lvl) {
 	if level >= LvlCrit && level <= LvlDebug {
 		l.setLv = level
 	}
-	return
 }
 
 func (l *logger) GetOutLevel() Lvl {
