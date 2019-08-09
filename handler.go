@@ -151,18 +151,15 @@ func LogRotate() {
 }
 
 func FileHandlerRotate(path string, fmtr Format) (Handler, error) {
-	f := &lumberjack.Logger{
-		Filename: path,
-		RotateOption: lumberjack.RotateOption{
-			MaxSize:    rotateConf.MaxSize,
-			MaxAge:     rotateConf.MaxAge,
-			MaxBackups: rotateConf.MaxBackup,
-			LocalTime:  true,
-			Compress:   rotateConf.Compress,
-			DayRotate:  rotateConf.DayRotate},
-	}
-	rotateConf.setLoggerWriteCloser(f)
-	return closingHandler{f, StreamHandler(f, fmtr)}, nil
+	f := lumberjack.NewLogger(path, lumberjack.RotateOption{
+		MaxSize:    rotateConf.MaxSize,
+		MaxAge:     rotateConf.MaxAge,
+		MaxBackups: rotateConf.MaxBackup,
+		LocalTime:  true,
+		Compress:   rotateConf.Compress,
+		DayRotate:  rotateConf.DayRotate})
+	rotateConf.setLoggerWriteCloser(&f)
+	return closingHandler{&f, StreamHandler(&f, fmtr)}, nil
 }
 
 // XXX: closingHandler is essentially unused at the moment

@@ -176,7 +176,6 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 			return 0, err
 		}
 	}
-
 	if l.size+writeLen > l.max() || l.lastDay.Day() != time.Now().Day() {
 		if err := l.rotate(); err != nil {
 			return 0, err
@@ -321,7 +320,7 @@ func (l *Logger) filename() string {
 	if l.Filename != "" {
 		return l.Filename
 	}
-	name := filepath.Base(os.Args[0]) + "-lumberjack.log"
+	name := filepath.Base(os.Args[0]) + ".log"
 	return filepath.Join(os.TempDir(), name)
 }
 
