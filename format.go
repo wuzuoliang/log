@@ -86,11 +86,6 @@ func TerminalFormat() Format {
 //
 func LogfmtFormat() Format {
 	return FormatFunc(func(r *Record) []byte {
-		// assignment in serial processing
-		logLevel = byte(r.Lvl)
-		logMetaKey = r.MetaK
-		logMetaValue = r.MetaV
-
 		var caller string
 		if r.CustomCaller == "" {
 			caller = r.Call.String()

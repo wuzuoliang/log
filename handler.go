@@ -5,6 +5,7 @@ import (
 	"github.com/go-stack/stack"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
+	"net"
 	"os"
 	"reflect"
 	"sync"
@@ -31,6 +32,39 @@ func (h funcHandler) Log(r *Record) error {
 	return h(r)
 }
 
+// LazyHandler writes all values to the wrapped handler after evaluating
+// any lazy functions in the record's context. It is already wrapped
+// around StreamHandler and SyslogHandler in this library, you'll only need
+// it if you write your own Handler.
+func LazyHandler(h Handler) Handler {
+	return FuncHandler(func(r *Record) error {
+		// go through the values (odd indices) and reassign
+		// the values of any lazy fn to the result of its execution
+		hadErr := false
+		for i := 1; i < len(r.Ctx); i += 2 {
+			lz, ok := r.Ctx[i].(Lazy)
+			if ok {
+				v, err := evaluateLazy(lz)
+				if err != nil {
+					hadErr = true
+					r.Ctx[i] = err
+				} else {
+					if cs, ok := v.(stack.CallStack); ok {
+						v = cs.TrimBelow(r.Call).TrimRuntime()
+					}
+					r.Ctx[i] = v
+				}
+			}
+		}
+
+		if hadErr {
+			r.Ctx = append(r.Ctx, errorKey, "bad lazy")
+		}
+
+		return h.Log(r)
+	})
+}
+
 // StreamHandler writes log records to an io.Writer
 // with the given format. StreamHandler can be used
 // to easily begin writing log records to other
@@ -52,8 +86,8 @@ func StreamHandler(wr io.Writer, fmtr Format) Handler {
 func SyncHandler(h Handler) Handler {
 	var mu sync.Mutex
 	return FuncHandler(func(r *Record) error {
-		defer mu.Unlock()
 		mu.Lock()
+		defer mu.Unlock()
 		return h.Log(r)
 	})
 }
@@ -70,6 +104,17 @@ func FileHandler(path string, fmtr Format) (Handler, error) {
 	return closingHandler{f, StreamHandler(f, fmtr)}, nil
 }
 
+// NetHandler opens a socket to the given address and writes records
+// over the connection.
+func NetHandler(network, addr string, fmtr Format) (Handler, error) {
+	conn, err := net.Dial(network, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return closingHandler{conn, StreamHandler(conn, fmtr)}, nil
+}
+
 // storage rotate file parameters
 type RotateOption struct {
 	MaxSize       int
@@ -82,41 +127,41 @@ type RotateOption struct {
 
 var rotateConf = &RotateOption{100, 10, 30, true, true, nil}
 
+// change rotate conf manually
 func SetRotatePara(maxSize, maxAge, maxBackUp int, compress, dayRotate bool) {
-	rotateConf.SetRotatePara(maxSize, maxAge, maxBackUp, compress, dayRotate)
+	rotateConf.setRotatePara(maxSize, maxAge, maxBackUp, compress, dayRotate)
 }
-
-func (r *RotateOption) SetLoggerWriteCloser(f *lumberjack.Logger) {
-	r.IO_WritePoint = f
-}
-
-func (r *RotateOption) GetLoggerWriteCloser() *lumberjack.Logger {
-	return r.IO_WritePoint
-}
-
-func (r *RotateOption) SetRotatePara(maxSize, maxAge, maxBackUp int, compress, dayRotate bool) {
+func (r *RotateOption) setRotatePara(maxSize, maxAge, maxBackUp int, compress, dayRotate bool) {
 	r.MaxSize, r.MaxAge, r.MaxBackup, r.Compress, r.DayRotate = maxSize, maxAge, maxBackUp, compress, dayRotate
 }
 
+func (r *RotateOption) setLoggerWriteCloser(f *lumberjack.Logger) {
+	r.IO_WritePoint = f
+}
+
+func (r *RotateOption) getLoggerWriteCloser() *lumberjack.Logger {
+	return r.IO_WritePoint
+}
+
+// only use FileHandlerRotate and rotateConf.IO_WritePoint not nil can manually rotate
 func LogRotate() {
 	if rotateConf.IO_WritePoint != nil {
-		rotateConf.GetLoggerWriteCloser().Rotate()
+		rotateConf.getLoggerWriteCloser().Rotate()
 	}
 }
 
 func FileHandlerRotate(path string, fmtr Format) (Handler, error) {
 	f := &lumberjack.Logger{
 		Filename: path,
-		RotateOption: lumberjack.RotateOption{rotateConf.MaxSize,
-			rotateConf.MaxAge,
-			rotateConf.MaxBackup,
-			true,
-			rotateConf.Compress,
-			rotateConf.DayRotate},
+		RotateOption: lumberjack.RotateOption{
+			MaxSize:    rotateConf.MaxSize,
+			MaxAge:     rotateConf.MaxAge,
+			MaxBackups: rotateConf.MaxBackup,
+			LocalTime:  true,
+			Compress:   rotateConf.Compress,
+			DayRotate:  rotateConf.DayRotate},
 	}
-
-	rotateConf.SetLoggerWriteCloser(f)
-
+	rotateConf.setLoggerWriteCloser(f)
 	return closingHandler{f, StreamHandler(f, fmtr)}, nil
 }
 
@@ -300,39 +345,6 @@ func BufferedHandler(bufSize int, h Handler) Handler {
 		}
 	}()
 	return ChannelHandler(recs)
-}
-
-// LazyHandler writes all values to the wrapped handler after evaluating
-// any lazy functions in the record's context. It is already wrapped
-// around StreamHandler and SyslogHandler in this library, you'll only need
-// it if you write your own Handler.
-func LazyHandler(h Handler) Handler {
-	return FuncHandler(func(r *Record) error {
-		// go through the values (odd indices) and reassign
-		// the values of any lazy fn to the result of its execution
-		hadErr := false
-		for i := 1; i < len(r.Ctx); i += 2 {
-			lz, ok := r.Ctx[i].(Lazy)
-			if ok {
-				v, err := evaluateLazy(lz)
-				if err != nil {
-					hadErr = true
-					r.Ctx[i] = err
-				} else {
-					if cs, ok := v.(stack.CallStack); ok {
-						v = cs.TrimBelow(r.Call).TrimRuntime()
-					}
-					r.Ctx[i] = v
-				}
-			}
-		}
-
-		if hadErr {
-			r.Ctx = append(r.Ctx, errorKey, "bad lazy")
-		}
-
-		return h.Log(r)
-	})
 }
 
 func evaluateLazy(lz Lazy) (interface{}, error) {

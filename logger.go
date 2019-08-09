@@ -12,13 +12,6 @@ const msgKey = "msg"
 const callKey = "call"
 const errorKey = "LOG_ERROR"
 
-var (
-	//global variables
-	logLevel     byte
-	logMetaKey   string
-	logMetaValue string
-)
-
 type Lvl int
 
 const (
@@ -106,9 +99,8 @@ type Logger interface {
 }
 
 type logger struct {
-	ctx []interface{}
-	h   *swapHandler
-	// keep the set level,only below the level can be output
+	ctx   []interface{}
+	h     *swapHandler
 	setLv Lvl
 }
 
@@ -131,7 +123,6 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
 }
 
 func (l *logger) New(ctx ...interface{}) Logger {
-	//child := &logger{newContext(l.ctx, ctx), new(swapHandler)}
 	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlDebug}
 	child.SetHandler(l.h)
 	return child
