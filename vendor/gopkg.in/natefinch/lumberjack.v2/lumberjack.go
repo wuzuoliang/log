@@ -176,7 +176,7 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 			return 0, err
 		}
 	}
-	if l.size+writeLen > l.max() || l.lastDay.Day() != time.Now().Day() {
+	if l.size+writeLen > l.max() || (l.DayRotate && l.lastDay.Day() != time.Now().Day()) {
 		if err := l.rotate(); err != nil {
 			return 0, err
 		}
