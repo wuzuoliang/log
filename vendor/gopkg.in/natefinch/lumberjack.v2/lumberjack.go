@@ -265,6 +265,7 @@ func (l *Logger) openNew() error {
 	}
 	l.file = f
 	l.size = 0
+	l.lastDay = time.Now().Day()
 	return nil
 }
 
