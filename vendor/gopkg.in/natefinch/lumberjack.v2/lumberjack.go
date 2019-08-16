@@ -92,13 +92,13 @@ type Logger struct {
 	mu        sync.Mutex
 	millCh    chan bool
 	startMill sync.Once
-	lastDay   time.Time
+	lastDay   int
 }
 
 func NewLogger(fileName string, rotateOption RotateOption) Logger {
 	return Logger{Filename: fileName,
 		RotateOption: rotateOption,
-		lastDay:      time.Now(),
+		lastDay:      time.Now().Day(),
 	}
 }
 
@@ -176,7 +176,7 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 			return 0, err
 		}
 	}
-	if l.size+writeLen > l.max() || (l.DayRotate && l.lastDay.Day() != time.Now().Day()) {
+	if l.size+writeLen > l.max() || (l.DayRotate && l.lastDay != time.Now().Day()) {
 		if err := l.rotate(); err != nil {
 			return 0, err
 		}
