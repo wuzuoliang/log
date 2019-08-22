@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	timeFormat     = "2006-01-02 15:04:05-0700"
-	termTimeFormat = "15:04:05-0700"
+	timeFormat     = "2006-01-02 15:04:05.999"
+	termTimeFormat = "15:04:05.999"
 	floatFormat    = 'f'
 	termMsgJust    = 40
 )
