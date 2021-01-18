@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-const timeKey = "t"
-const lvlKey = "lvl"
+const timeKey = "time"
+const lvlKey = "level"
 const msgKey = "msg"
-const callKey = "call"
-const errorKey = "LOG_ERROR"
+const callKey = "location"
+const errorKey = "error"
 
 type Lvl int
 
@@ -26,13 +26,13 @@ const (
 func (l Lvl) String() string {
 	switch l {
 	case LvlDebug:
-		return "dbug"
+		return "debug"
 	case LvlInfo:
 		return "info"
 	case LvlWarn:
 		return "warn"
 	case LvlError:
-		return "eror"
+		return "error"
 	case LvlCrit:
 		return "crit"
 	default:
