@@ -1,15 +1,16 @@
 package log
 
 import (
-	"github.com/go-stack/stack"
 	"os"
 	"time"
+
+	"github.com/go-stack/stack"
 )
 
 const timeKey = "time"
-const lvlKey = "level"
+const levelKey = "level"
 const msgKey = "msg"
-const callKey = "location"
+const locationKey = "location"
 const errorKey = "error"
 
 type Level int
@@ -115,8 +116,8 @@ func (l *logger) write(msg string, lvl Level, fields []interface{}) {
 			KeyNames: RecordKeyNames{
 				Time:  timeKey,
 				Msg:   msgKey,
-				Level: lvlKey,
-				Call:  callKey,
+				Level: levelKey,
+				Call:  locationKey,
 			},
 		})
 	}

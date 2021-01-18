@@ -51,10 +51,10 @@ func BenchmarkCallerFuncHandler(b *testing.B) {
 
 func BenchmarkLogfmtNoCtx(b *testing.B) {
 	r := Record{
-		Time: time.Now(),
-		Lvl:  LvlInfo,
-		Msg:  "test message",
-		Ctx:  []interface{}{},
+		Time:  time.Now(),
+		Level: LvlInfo,
+		Msg:   "test message",
+		Ctx:   []interface{}{},
 	}
 
 	logfmt := LogfmtFormat()
@@ -65,10 +65,10 @@ func BenchmarkLogfmtNoCtx(b *testing.B) {
 
 func BenchmarkJsonNoCtx(b *testing.B) {
 	r := Record{
-		Time: time.Now(),
-		Lvl:  LvlInfo,
-		Msg:  "test message",
-		Ctx:  []interface{}{},
+		Time:  time.Now(),
+		Level: LvlInfo,
+		Msg:   "test message",
+		Ctx:   []interface{}{},
 	}
 
 	jsonfmt := JsonFormat()
