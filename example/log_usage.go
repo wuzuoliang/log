@@ -5,6 +5,13 @@ import (
 )
 
 func main(){
+	newLog:=log.New()
+	newLog.Info("sss","22",log.JSON(&struct{
+		A int
+		B string
+	}{1,"2"}))
+	return
+
 	log.SetRotatePara(100, 10, 30, true, true)
 	//
 	h, _ := log.FileHandlerRotate("test.log", log.LogfmtFormat())
@@ -23,3 +30,4 @@ func main(){
 
 	log.Debug("a","1",2,"3",4)
 }
+

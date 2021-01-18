@@ -11,6 +11,7 @@ func testCallerLocation() string {
 
 func TestCallerLocation(t *testing.T) {
 	location := testCallerLocation()
+	t.Log("location", location)
 	switch {
 	case location == "log.testCallerLocation(github.com/wuzuoliang/log/location_test.go:9)":
 	case strings.HasPrefix(location, "log.testCallerLocation(") && strings.HasSuffix(location, "/log/location_test.go:9)"):

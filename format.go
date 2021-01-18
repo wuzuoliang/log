@@ -48,7 +48,7 @@ func TerminalFormat() Format {
 	return FormatFunc(func(r *Record) []byte {
 		var color = 0
 		switch r.Level {
-		case LvlCrit:
+		case LvlFatal:
 			color = 35
 		case LvlError:
 			color = 31

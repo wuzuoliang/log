@@ -1,7 +1,6 @@
 package log
 
 import (
-	"errors"
 	"github.com/inconshreveable/log15/term"
 	"github.com/mattn/go-colorable"
 	"os"
@@ -13,12 +12,6 @@ var (
 	StderrHandler = StreamHandler(os.Stderr, LogfmtFormat())
 )
 
-var (
-	_ErrNumberOfFieldsMustNotBeOdd error = errors.New("the number of fields must not be odd")
-	_ErrTypeOfFieldKeyMustBeString error = errors.New("the type of field key must be string")
-	_ErrFieldKeyMustNotBeEmpty     error = errors.New("the field key must not be empty")
-)
-
 func init() {
 	if term.IsTty(os.Stdout.Fd()) {
 		StdoutHandler = StreamHandler(colorable.NewColorableStdout(), TerminalFormat())
@@ -28,7 +21,6 @@ func init() {
 		StderrHandler = StreamHandler(colorable.NewColorableStderr(), TerminalFormat())
 	}
 
-	//root = &logger{[]interface{}{}, new(swapHandler)}
 	root = &logger{[]interface{}{}, new(swapHandler), LvlDebug}
 	root.SetHandler(StdoutHandler)
 }
@@ -49,7 +41,7 @@ func SetOutLevel(level Level) {
 }
 
 func GetLogLevel() Level {
-	return root.setLv
+	return root.level
 }
 
 // The following functions bypass the exported logger methods (logger.Debug,
@@ -57,7 +49,7 @@ func GetLogLevel() Level {
 // runtime.Caller(2) always refers to the call site in client code.
 
 func IsDebugEnable() bool {
-	return root.setLv >= LvlDebug
+	return root.level >= LvlDebug
 }
 
 // Debug is a convenient alias for Root().Debug
@@ -66,7 +58,7 @@ func Debug(msg string, kvalues ...interface{}) {
 }
 
 func IsInfoEnable() bool {
-	return root.setLv >= LvlInfo
+	return root.level >= LvlInfo
 }
 
 // Info is a convenient alias for Root().Info
@@ -75,7 +67,7 @@ func Info(msg string, kvalues ...interface{}) {
 }
 
 func IsWarnEnable() bool {
-	return root.setLv >= LvlWarn
+	return root.level >= LvlWarn
 }
 
 // Warn is a convenient alias for Root().Warn
@@ -84,7 +76,7 @@ func Warn(msg string, kvalues ...interface{}) {
 }
 
 func IsErrorEnable() bool {
-	return root.setLv >= LvlError
+	return root.level >= LvlError
 }
 
 // Error is a convenient alias for Root().Error
@@ -92,12 +84,12 @@ func Error(msg string, kvalues ...interface{}) {
 	root.write(msg, LvlError, kvalues)
 }
 
-func IsCritEnable() bool {
-	return root.setLv >= LvlCrit
+func IsFatalEnable() bool {
+	return root.level >= LvlFatal
 }
 
-// Crit is a convenient alias for Root().Crit
-func Crit(msg string, kvalues ...interface{}) {
-	root.write(msg, LvlCrit, kvalues)
+// Fatal is a convenient alias for Root().Fatal
+func Fatal(msg string, kvalues ...interface{}) {
+	root.write(msg, LvlFatal, kvalues)
 	os.Exit(1)
 }

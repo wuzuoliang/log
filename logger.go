@@ -7,53 +7,46 @@ import (
 	"github.com/go-stack/stack"
 )
 
-const timeKey = "time"
-const levelKey = "level"
-const msgKey = "msg"
-const locationKey = "location"
-const errorKey = "error"
+const (
+	timeKey     = "time"
+	levelKey    = "level"
+	msgKey      = "msg"
+	locationKey = "location"
+	errorKey    = "error"
+)
 
 type Level int
 
 const (
-	LvlCrit Level = iota
+	LvlFatal Level = iota
 	LvlError
 	LvlWarn
 	LvlInfo
 	LvlDebug
+
+	LvlFatalStr = "fatal"
+	LvlErrorStr = "error"
+	LvlWarnStr  = "warn"
+	LvlInfoStr  = "info"
+	LvlDebugStr = "debug"
 )
 
-// Returns the name of a Lvl
-func (l Level) String() string {
-	switch l {
-	case LvlDebug:
-		return "debug"
-	case LvlInfo:
-		return "info"
-	case LvlWarn:
-		return "warn"
-	case LvlError:
-		return "error"
-	case LvlCrit:
-		return "crit"
-	default:
-		panic("bad level")
-	}
+var levelStringMap = map[Level]string{
+	LvlFatal: LvlFatalStr,
+	LvlError: LvlErrorStr,
+	LvlWarn:  LvlWarnStr,
+	LvlInfo:  LvlInfoStr,
+	LvlDebug: LvlDebugStr,
 }
 
-type Meta int
-
-const (
-	Order Meta = iota
-)
-
-func (m Meta) String() string {
-	switch m {
-	case Order:
-		return "order"
-	default:
-		panic("bad meta")
+// Returns the name of a Level
+func (l Level) String() string {
+	levelStr, ok := levelStringMap[l]
+	if !ok {
+		// _ErrLogLevelNotMatch
+		panic("the log level not match")
 	}
+	return levelStr
 }
 
 // A Record is what a Logger asks its handler to write
@@ -87,7 +80,7 @@ type Logger interface {
 	// SetHandler updates the logger to write records to the specified handler.
 	SetHandler(h Handler)
 
-	// Set setLv value. only level below this can be output
+	// Set level value. only level below this can be output
 	SetOutLevel(l Level)
 	GetOutLevel() Level
 
@@ -96,20 +89,20 @@ type Logger interface {
 	Info(msg string, fields ...interface{})
 	Warn(msg string, fields ...interface{})
 	Error(msg string, fields ...interface{})
-	Crit(msg string, fields ...interface{})
+	Fatal(msg string, fields ...interface{})
 }
 
 type logger struct {
-	ctx   []interface{}
-	h     *swapHandler
-	setLv Level
+	ctx     []interface{}
+	handler *swapHandler
+	level   Level
 }
 
-func (l *logger) write(msg string, lvl Level, fields []interface{}) {
-	if lvl <= l.setLv {
-		l.h.Log(&Record{
+func (l *logger) write(msg string, level Level, fields []interface{}) {
+	if level <= l.level {
+		l.handler.Log(&Record{
 			Time:  time.Now(),
-			Level: lvl,
+			Level: level,
 			Msg:   msg,
 			Ctx:   newContext(l.ctx, fields),
 			Call:  stack.Caller(2),
@@ -125,7 +118,7 @@ func (l *logger) write(msg string, lvl Level, fields []interface{}) {
 
 func (l *logger) New(ctx ...interface{}) Logger {
 	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlDebug}
-	child.SetHandler(l.h)
+	child.SetHandler(l.handler)
 	return child
 }
 
@@ -138,13 +131,13 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 }
 
 func (l *logger) SetOutLevel(level Level) {
-	if level >= LvlCrit && level <= LvlDebug {
-		l.setLv = level
+	if level >= LvlFatal && level <= LvlDebug {
+		l.level = level
 	}
 }
 
 func (l *logger) GetOutLevel() Level {
-	return l.setLv
+	return l.level
 }
 
 func (l *logger) Debug(msg string, fields ...interface{}) {
@@ -163,17 +156,17 @@ func (l *logger) Error(msg string, fields ...interface{}) {
 	l.write(msg, LvlError, fields)
 }
 
-func (l *logger) Crit(msg string, fields ...interface{}) {
-	l.write(msg, LvlCrit, fields)
+func (l *logger) Fatal(msg string, fields ...interface{}) {
+	l.write(msg, LvlFatal, fields)
 	os.Exit(1)
 }
 
 func (l *logger) GetHandler() Handler {
-	return l.h.Get()
+	return l.handler.Get()
 }
 
 func (l *logger) SetHandler(h Handler) {
-	l.h.Swap(h)
+	l.handler.Swap(h)
 }
 
 func normalize(ctx []interface{}) []interface{} {
