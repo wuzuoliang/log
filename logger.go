@@ -54,8 +54,6 @@ type Record struct {
 	Time         time.Time
 	Level        Level
 	Msg          string
-	MetaK        string
-	MetaV        string
 	Ctx          []interface{}
 	Call         stack.Call
 	CustomCaller string

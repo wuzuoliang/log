@@ -63,23 +63,24 @@ func TerminalFormat() Format {
 		b := &bytes.Buffer{}
 		lvl := strings.ToUpper(r.Level.String())
 		if color > 0 {
-			fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s][%s] %s=%s", color, lvl, r.Time.Format(termTimeFormat), r.Call.String(), r.KeyNames.Msg, r.Msg)
+			fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m [%s][%s] %s=%s ", color, lvl, r.Time.Format(termTimeFormat), r.Call.String(), r.KeyNames.Msg, r.Msg)
 		} else {
 			fmt.Fprintf(b, "[%s][%s][%s] %s=%s ", lvl, r.Call.String(), r.Time.Format(termTimeFormat), r.KeyNames.Msg, r.Msg)
 		}
 
 		// try to justify the log output for short messages
-		if len(r.Ctx) > 0 && len(r.Msg) < termMsgJust {
-			b.Write(bytes.Repeat([]byte{' '}, termMsgJust-len(r.Msg)))
-		}
+		// 此处控制的是msg和后续kvalues中间的' '
+		//if len(r.Ctx) > 0 && len(r.Msg) < termMsgJust {
+		//	b.Write(bytes.Repeat([]byte{' '}, termMsgJust-len(r.Msg)))
+		//}
 
-		// print the keys logfmt style
-		logfmt(b, r.Ctx, color)
+		// print the keys kvaluesfmt style
+		kvaluesfmt(b, r.Ctx, color)
 		return b.Bytes()
 	})
 }
 
-// LogfmtFormat prints records in logfmt format, an easy machine-parseable but human-readable
+// LogfmtFormat prints records in kvaluesfmt format, an easy machine-parseable but human-readable
 // format for key/value pairs.
 //
 // For more details see: http://godoc.org/github.com/kr/logfmt
@@ -95,12 +96,12 @@ func LogfmtFormat() Format {
 
 		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Level, r.Level, r.KeyNames.Call, caller, r.KeyNames.Msg, r.Msg}
 		buf := &bytes.Buffer{}
-		logfmt(buf, append(common, r.Ctx...), 0)
+		kvaluesfmt(buf, append(common, r.Ctx...), 0)
 		return buf.Bytes()
 	})
 }
 
-func logfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
+func kvaluesfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
 	for i := 0; i < len(ctx); i += 2 {
 		if i != 0 {
 			buf.WriteByte(' ')
@@ -109,7 +110,8 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
 		k, ok := ctx[i].(string)
 		v := formatLogfmtValue(ctx[i+1])
 		if !ok {
-			k, v = errorKey, formatLogfmtValue(k)
+			//k, v = errorKey, formatLogfmtValue(k)
+			k, v = errorKey, fmt.Sprintf("%+v is not a string key", ctx[i+1])
 		}
 
 		// XXX: we should probably check that all of your key bytes aren't invalid

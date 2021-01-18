@@ -10,11 +10,19 @@ func main(){
 		A int
 		B string
 	}{1,"2"}))
-	return
-
+	//return
+	newLog.Error("ss","23",333,"123","1111")
+	newLog.Debug("de","44",12312312)
+	newLog.Warn("warn","wwww","asdasdasdqwejqwiojfoiajoifushiuheqihiquwhouqwh")
+	//newLog.Fatal("ffff","asd",123,"!@3123",111,"2",struct{
+	//	A int
+	//	B string
+	//}{3,"4"},"5")
+	//return
 	log.SetRotatePara(100, 10, 30, true, true)
 	//
-	h, _ := log.FileHandlerRotate("test.log", log.LogfmtFormat())
+	h, _ := log.FileHandlerRotate("test.log", log.JsonFormat())
+
 	log.Root().SetHandler(h)
 	logLevel:="debug"
 	switch logLevel {
@@ -28,6 +36,6 @@ func main(){
 		log.SetOutLevel(log.LvlError)
 	}
 
-	log.Debug("a","1",2,"3",4)
+	log.Debug("a","1",2,"3",4,"5",6,7,8,9,10)
 }
 
