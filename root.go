@@ -1,6 +1,7 @@
 package log
 
 import (
+	"errors"
 	"github.com/inconshreveable/log15/term"
 	"github.com/mattn/go-colorable"
 	"os"
@@ -10,6 +11,12 @@ var (
 	root          *logger
 	StdoutHandler = StreamHandler(os.Stdout, LogfmtFormat())
 	StderrHandler = StreamHandler(os.Stderr, LogfmtFormat())
+)
+
+var (
+	_ErrNumberOfFieldsMustNotBeOdd error = errors.New("the number of fields must not be odd")
+	_ErrTypeOfFieldKeyMustBeString error = errors.New("the type of field key must be string")
+	_ErrFieldKeyMustNotBeEmpty     error = errors.New("the field key must not be empty")
 )
 
 func init() {
@@ -37,11 +44,11 @@ func Root() Logger {
 	return root
 }
 
-func SetOutLevel(level Lvl) {
+func SetOutLevel(level Level) {
 	root.SetOutLevel(level)
 }
 
-func GetLogLevel() Lvl {
+func GetLogLevel() Level {
 	return root.setLv
 }
 
@@ -54,8 +61,8 @@ func IsDebugEnable() bool {
 }
 
 // Debug is a convenient alias for Root().Debug
-func Debug(msg string, ctx ...interface{}) {
-	root.write(msg, LvlDebug, ctx)
+func Debug(msg string, kvalues ...interface{}) {
+	root.write(msg, LvlDebug, kvalues)
 }
 
 func IsInfoEnable() bool {
@@ -63,8 +70,8 @@ func IsInfoEnable() bool {
 }
 
 // Info is a convenient alias for Root().Info
-func Info(msg string, ctx ...interface{}) {
-	root.write(msg, LvlInfo, ctx)
+func Info(msg string, kvalues ...interface{}) {
+	root.write(msg, LvlInfo, kvalues)
 }
 
 func IsWarnEnable() bool {
@@ -72,8 +79,8 @@ func IsWarnEnable() bool {
 }
 
 // Warn is a convenient alias for Root().Warn
-func Warn(msg string, ctx ...interface{}) {
-	root.write(msg, LvlWarn, ctx)
+func Warn(msg string, kvalues ...interface{}) {
+	root.write(msg, LvlWarn, kvalues)
 }
 
 func IsErrorEnable() bool {
@@ -81,8 +88,8 @@ func IsErrorEnable() bool {
 }
 
 // Error is a convenient alias for Root().Error
-func Error(msg string, ctx ...interface{}) {
-	root.write(msg, LvlError, ctx)
+func Error(msg string, kvalues ...interface{}) {
+	root.write(msg, LvlError, kvalues)
 }
 
 func IsCritEnable() bool {
@@ -90,7 +97,7 @@ func IsCritEnable() bool {
 }
 
 // Crit is a convenient alias for Root().Crit
-func Crit(msg string, ctx ...interface{}) {
-	root.write(msg, LvlCrit, ctx)
+func Crit(msg string, kvalues ...interface{}) {
+	root.write(msg, LvlCrit, kvalues)
 	os.Exit(1)
 }

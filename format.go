@@ -47,7 +47,7 @@ func (f formatFunc) Format(r *Record) []byte {
 func TerminalFormat() Format {
 	return FormatFunc(func(r *Record) []byte {
 		var color = 0
-		switch r.Lvl {
+		switch r.Level {
 		case LvlCrit:
 			color = 35
 		case LvlError:
@@ -61,7 +61,7 @@ func TerminalFormat() Format {
 		}
 
 		b := &bytes.Buffer{}
-		lvl := strings.ToUpper(r.Lvl.String())
+		lvl := strings.ToUpper(r.Level.String())
 		if color > 0 {
 			fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s][%s] %s=%s", color, lvl, r.Time.Format(termTimeFormat), r.Call.String(), r.KeyNames.Msg, r.Msg)
 		} else {
@@ -93,7 +93,7 @@ func LogfmtFormat() Format {
 			caller = r.CustomCaller
 		}
 
-		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Lvl, r.Lvl, r.KeyNames.Call, caller, r.KeyNames.Msg, r.Msg}
+		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Level, r.Level, r.KeyNames.Call, caller, r.KeyNames.Msg, r.Msg}
 		buf := &bytes.Buffer{}
 		logfmt(buf, append(common, r.Ctx...), 0)
 		return buf.Bytes()
@@ -153,7 +153,7 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 		props := make(map[string]interface{})
 
 		props[r.KeyNames.Time] = r.Time
-		props[r.KeyNames.Lvl] = r.Lvl.String()
+		props[r.KeyNames.Level] = r.Level.String()
 		props[r.KeyNames.Msg] = r.Msg
 
 		for i := 0; i < len(r.Ctx); i += 2 {

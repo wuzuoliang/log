@@ -12,10 +12,10 @@ const msgKey = "msg"
 const callKey = "location"
 const errorKey = "error"
 
-type Lvl int
+type Level int
 
 const (
-	LvlCrit Lvl = iota
+	LvlCrit Level = iota
 	LvlError
 	LvlWarn
 	LvlInfo
@@ -23,7 +23,7 @@ const (
 )
 
 // Returns the name of a Lvl
-func (l Lvl) String() string {
+func (l Level) String() string {
 	switch l {
 	case LvlDebug:
 		return "debug"
@@ -58,7 +58,7 @@ func (m Meta) String() string {
 // A Record is what a Logger asks its handler to write
 type Record struct {
 	Time         time.Time
-	Lvl          Lvl
+	Level        Level
 	Msg          string
 	MetaK        string
 	MetaV        string
@@ -69,10 +69,10 @@ type Record struct {
 }
 
 type RecordKeyNames struct {
-	Time string
-	Msg  string
-	Lvl  string
-	Call string
+	Time  string
+	Msg   string
+	Level string
+	Call  string
 }
 
 // A Logger writes key/value pairs to a Handler
@@ -87,36 +87,36 @@ type Logger interface {
 	SetHandler(h Handler)
 
 	// Set setLv value. only level below this can be output
-	SetOutLevel(l Lvl)
-	GetOutLevel() Lvl
+	SetOutLevel(l Level)
+	GetOutLevel() Level
 
 	// Log a message at the given level with context key/value pairs
-	Debug(msg string, ctx ...interface{})
-	Info(msg string, ctx ...interface{})
-	Warn(msg string, ctx ...interface{})
-	Error(msg string, ctx ...interface{})
-	Crit(msg string, ctx ...interface{})
+	Debug(msg string, fields ...interface{})
+	Info(msg string, fields ...interface{})
+	Warn(msg string, fields ...interface{})
+	Error(msg string, fields ...interface{})
+	Crit(msg string, fields ...interface{})
 }
 
 type logger struct {
 	ctx   []interface{}
 	h     *swapHandler
-	setLv Lvl
+	setLv Level
 }
 
-func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
+func (l *logger) write(msg string, lvl Level, fields []interface{}) {
 	if lvl <= l.setLv {
 		l.h.Log(&Record{
-			Time: time.Now(),
-			Lvl:  lvl,
-			Msg:  msg,
-			Ctx:  newContext(l.ctx, ctx),
-			Call: stack.Caller(2),
+			Time:  time.Now(),
+			Level: lvl,
+			Msg:   msg,
+			Ctx:   newContext(l.ctx, fields),
+			Call:  stack.Caller(2),
 			KeyNames: RecordKeyNames{
-				Time: timeKey,
-				Msg:  msgKey,
-				Lvl:  lvlKey,
-				Call: callKey,
+				Time:  timeKey,
+				Msg:   msgKey,
+				Level: lvlKey,
+				Call:  callKey,
 			},
 		})
 	}
@@ -136,34 +136,34 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 	return newCtx
 }
 
-func (l *logger) SetOutLevel(level Lvl) {
+func (l *logger) SetOutLevel(level Level) {
 	if level >= LvlCrit && level <= LvlDebug {
 		l.setLv = level
 	}
 }
 
-func (l *logger) GetOutLevel() Lvl {
+func (l *logger) GetOutLevel() Level {
 	return l.setLv
 }
 
-func (l *logger) Debug(msg string, ctx ...interface{}) {
-	l.write(msg, LvlDebug, ctx)
+func (l *logger) Debug(msg string, fields ...interface{}) {
+	l.write(msg, LvlDebug, fields)
 }
 
-func (l *logger) Info(msg string, ctx ...interface{}) {
-	l.write(msg, LvlInfo, ctx)
+func (l *logger) Info(msg string, fields ...interface{}) {
+	l.write(msg, LvlInfo, fields)
 }
 
-func (l *logger) Warn(msg string, ctx ...interface{}) {
-	l.write(msg, LvlWarn, ctx)
+func (l *logger) Warn(msg string, fields ...interface{}) {
+	l.write(msg, LvlWarn, fields)
 }
 
-func (l *logger) Error(msg string, ctx ...interface{}) {
-	l.write(msg, LvlError, ctx)
+func (l *logger) Error(msg string, fields ...interface{}) {
+	l.write(msg, LvlError, fields)
 }
 
-func (l *logger) Crit(msg string, ctx ...interface{}) {
-	l.write(msg, LvlCrit, ctx)
+func (l *logger) Crit(msg string, fields ...interface{}) {
+	l.write(msg, LvlCrit, fields)
 	os.Exit(1)
 }
 

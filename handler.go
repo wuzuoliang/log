@@ -239,8 +239,8 @@ func FilterHandler(fn func(r *Record) bool, h Handler) Handler {
 func MatchFilterHandler(key string, value interface{}, h Handler) Handler {
 	return FilterHandler(func(r *Record) (pass bool) {
 		switch key {
-		case r.KeyNames.Lvl:
-			return r.Lvl == value
+		case r.KeyNames.Level:
+			return r.Level == value
 		case r.KeyNames.Time:
 			return r.Time == value
 		case r.KeyNames.Msg:
@@ -263,9 +263,9 @@ func MatchFilterHandler(key string, value interface{}, h Handler) Handler {
 //
 //     log.LvlFilterHandler(log.LvlError, log.StdoutHandler)
 //
-func LvlFilterHandler(maxLvl Lvl, h Handler) Handler {
+func LvlFilterHandler(maxLvl Level, h Handler) Handler {
 	return FilterHandler(func(r *Record) (pass bool) {
-		return r.Lvl <= maxLvl
+		return r.Level <= maxLvl
 	}, h)
 }
 
