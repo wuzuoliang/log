@@ -18,12 +18,14 @@ const (
 type Level int
 
 const (
-	LvlFatal Level = iota
+	LvlAll = iota
+	LvlFatal
 	LvlError
 	LvlWarn
 	LvlInfo
 	LvlDebug
 
+	LvlAllStr = ""
 	LvlFatalStr = "fatal"
 	LvlErrorStr = "error"
 	LvlWarnStr  = "warn"
@@ -32,6 +34,7 @@ const (
 )
 
 var levelStringMap = map[Level]string{
+	LvlAll:LvlAllStr,
 	LvlFatal: LvlFatalStr,
 	LvlError: LvlErrorStr,
 	LvlWarn:  LvlWarnStr,
@@ -88,12 +91,17 @@ type Logger interface {
 	Warn(msg string, fields ...interface{})
 	Error(msg string, fields ...interface{})
 	Fatal(msg string, fields ...interface{})
+	Log(msg string,fields ...interface{})
 }
 
 type logger struct {
 	ctx     []interface{}
 	handler *swapHandler
 	level   Level
+}
+
+type options struct{
+
 }
 
 func (l *logger) write(msg string, level Level, fields []interface{}) {
@@ -157,6 +165,10 @@ func (l *logger) Error(msg string, fields ...interface{}) {
 func (l *logger) Fatal(msg string, fields ...interface{}) {
 	l.write(msg, LvlFatal, fields)
 	os.Exit(1)
+}
+
+func (l *logger) Log(msg string, fields ...interface{}) {
+	l.write(msg, LvlAll, fields)
 }
 
 func (l *logger) GetHandler() Handler {

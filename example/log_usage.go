@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/wuzuoliang/log"
 )
 
@@ -37,5 +38,9 @@ func main(){
 	}
 
 	log.Debug("a","1",2,"3",4,"5",6,7,8,9,10)
+
+
+	nCtx:=context.WithValue(context.Background(),"trace","9527")
+	log.FatalContext(nCtx,"12","11","22")
 }
 
