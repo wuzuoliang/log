@@ -21,7 +21,7 @@ func init() {
 		StderrHandler = StreamHandler(colorable.NewColorableStderr(), TerminalFormat())
 	}
 
-	root = &logger{[]interface{}{}, new(swapHandler), LvlAll}
+	root = &logger{[]interface{}{}, new(swapHandler), LvlTrace}
 	root.SetHandler(StdoutHandler)
 }
 
@@ -30,13 +30,6 @@ func init() {
 func New(ctx ...interface{}) Logger {
 	return root.New(ctx...)
 }
-
-// New returns a new logger with the given context.
-// New is a convenient alias for Root().New
-func NewWithOptions(options []) Logger {
-	return root.New(ctx...)
-}
-
 
 // Root returns the root logger
 func Root() Logger {
@@ -103,5 +96,5 @@ func Fatal(msg string, kvalues ...interface{}) {
 
 // Log is a convenient alias for Root().Log
 func Log(msg string,kvalues ...interface{}) {
-	root.write(msg,LvlAll,kvalues)
+	root.write(msg,LvlTrace,kvalues)
 }

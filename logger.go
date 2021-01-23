@@ -8,6 +8,9 @@ import (
 )
 
 const (
+	/**
+	日志关键字段，Key信息
+	*/
 	timeKey     = "time"
 	levelKey    = "level"
 	msgKey      = "msg"
@@ -15,26 +18,27 @@ const (
 	errorKey    = "error"
 )
 
+// Level 日志级别
 type Level int
 
 const (
-	LvlAll = iota
-	LvlFatal
+	LvlFatal = iota
 	LvlError
 	LvlWarn
 	LvlInfo
 	LvlDebug
+	LvlTrace
 
-	LvlAllStr = ""
 	LvlFatalStr = "fatal"
 	LvlErrorStr = "error"
 	LvlWarnStr  = "warn"
 	LvlInfoStr  = "info"
 	LvlDebugStr = "debug"
+	LvlTraceStr = "trace"
 )
 
 var levelStringMap = map[Level]string{
-	LvlAll:LvlAllStr,
+	LvlTrace: LvlTraceStr,
 	LvlFatal: LvlFatalStr,
 	LvlError: LvlErrorStr,
 	LvlWarn:  LvlWarnStr,
@@ -63,6 +67,7 @@ type Record struct {
 	KeyNames     RecordKeyNames
 }
 
+// RecordKeyNames 日志记录规则字段名
 type RecordKeyNames struct {
 	Time  string
 	Msg   string
@@ -100,10 +105,6 @@ type logger struct {
 	level   Level
 }
 
-type options struct{
-
-}
-
 func (l *logger) write(msg string, level Level, fields []interface{}) {
 	if level <= l.level {
 		l.handler.Log(&Record{
@@ -123,7 +124,7 @@ func (l *logger) write(msg string, level Level, fields []interface{}) {
 }
 
 func (l *logger) New(ctx ...interface{}) Logger {
-	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlDebug}
+	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlTrace}
 	child.SetHandler(l.handler)
 	return child
 }
@@ -137,7 +138,7 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 }
 
 func (l *logger) SetOutLevel(level Level) {
-	if level >= LvlFatal && level <= LvlDebug {
+	if level >= LvlFatal && level <= LvlTrace {
 		l.level = level
 	}
 }
@@ -168,7 +169,7 @@ func (l *logger) Fatal(msg string, fields ...interface{}) {
 }
 
 func (l *logger) Log(msg string, fields ...interface{}) {
-	l.write(msg, LvlAll, fields)
+	l.write(msg, LvlTrace, fields)
 }
 
 func (l *logger) GetHandler() Handler {

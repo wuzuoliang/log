@@ -1,24 +1,24 @@
 package log
-
-import (
-	"context"
-)
-
-// FatalContext is a shortcut to the following code:
-//  lg, ok := FromContext(ctx)
-//  if ok {
-//  	lg.Output(1, FatalLevel, msg, fields...)
-//  	return
-//  }
-//  Output(1, FatalLevel, msg, fields...)
-func FatalContext(ctx context.Context, msg string, fields ...interface{}) {
-	lg, ok := FromContext(ctx)
-	if ok {
-		lg.Fatal(msg,fields...)
-		return
-	}
-	root.Fatal(msg,fields...)
-}
+//
+//import (
+//	"context"
+//)
+//
+//// FatalContext is a shortcut to the following code:
+////  lg, ok := FromContext(ctx)
+////  if ok {
+////  	lg.Output(1, FatalLevel, msg, fields...)
+////  	return
+////  }
+////  Output(1, FatalLevel, msg, fields...)
+//func FatalContext(ctx context.Context, msg string, fields ...interface{}) {
+//	lg, ok := FromContext(ctx)
+//	if ok {
+//		lg.Fatal(msg,fields...)
+//		return
+//	}
+//	root.Fatal(msg,fields...)
+//}
 //
 //// ErrorContext is a shortcut to the following code:
 ////  lg, ok := FromContext(ctx)
