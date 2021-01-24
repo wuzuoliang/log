@@ -35,16 +35,17 @@ func TestLazy(t *testing.T) {
 	}
 
 	l, _, r := testLogger()
-	l.Info("", "x", Lazy{lazy})
-	if r.Ctx[1] != 1 {
-		t.Fatalf("Lazy function not evaluated, got %v, expected %d", r.Ctx[1], 1)
+	l.Info("1", "x", Lazy{lazy})
+	if r.KeyValues[1] != 1 {
+		t.Fatalf("Lazy function not evaluated, got %v, expected %d", r.KeyValues[1], 1)
 	}
 
 	x = 2
-	l.Info("", "x", Lazy{lazy})
-	if r.Ctx[1] != 2 {
-		t.Fatalf("Lazy function not evaluated, got %v, expected %d", r.Ctx[1], 1)
+	l.Info("2", "x", Lazy{lazy})
+	if r.KeyValues[1] != 2 {
+		t.Fatalf("Lazy function not evaluated, got %v, expected %d", r.KeyValues[1], 1)
 	}
+
 }
 
 func TestInvalidLazy(t *testing.T) {
@@ -52,12 +53,12 @@ func TestInvalidLazy(t *testing.T) {
 
 	l, _, r := testLogger()
 	validate := func() {
-		if len(r.Ctx) < 4 {
-			t.Fatalf("Invalid lazy, got %d args, expecting at least 4", len(r.Ctx))
+		if len(r.KeyValues) < 4 {
+			t.Fatalf("Invalid lazy, got %d args, expecting at least 4", len(r.KeyValues))
 		}
 
-		if r.Ctx[2] != errorKey {
-			t.Fatalf("Invalid lazy, got key %s expecting %s", r.Ctx[2], errorKey)
+		if r.KeyValues[2] != errorKey {
+			t.Fatalf("Invalid lazy, got key %s expecting %s", r.KeyValues[2], errorKey)
 		}
 	}
 
@@ -69,15 +70,24 @@ func TestInvalidLazy(t *testing.T) {
 
 	l.Info("", "x", Lazy{func() {}})
 	validate()
+
+	l.Info("", "x")
+	validate()
+
+	//l.Info("")
+	//validate()
 }
 
-func TestCtx(t *testing.T) {
+func TestKeyValues(t *testing.T) {
 	t.Parallel()
 
 	l, _, r := testLogger()
-	l.Info("", Ctx{"x": 1, "y": "foo", "tester": t})
-	if len(r.Ctx) != 6 {
-		t.Fatalf("Expecting Ctx tansformed into %d ctx args, got %d: %v", 6, len(r.Ctx), r.Ctx)
+	l.Info("", map[string]interface{}{"x": 1, "y": "foo", "tester": t})
+	for _, v := range r.KeyValues {
+		t.Log(v)
+	}
+	if len(r.KeyValues) != 6 {
+		t.Fatalf("Expecting Ctx tansformed into %d ctx args, got %d: %v", 6, len(r.KeyValues), r.KeyValues)
 	}
 }
 
@@ -185,16 +195,16 @@ func TestLogContext(t *testing.T) {
 	l = l.New("foo", "bar")
 	l.Fatal("baz")
 
-	if len(r.Ctx) != 2 {
-		t.Fatalf("Expected logger context in record context. Got length %d, expected %d", len(r.Ctx), 2)
+	if len(r.KeyValues) != 2 {
+		t.Fatalf("Expected logger context in record context. Got length %d, expected %d", len(r.KeyValues), 2)
 	}
 
-	if r.Ctx[0] != "foo" {
-		t.Fatalf("Wrong context key, got %s expected %s", r.Ctx[0], "foo")
+	if r.KeyValues[0] != "foo" {
+		t.Fatalf("Wrong context key, got %s expected %s", r.KeyValues[0], "foo")
 	}
 
-	if r.Ctx[1] != "bar" {
-		t.Fatalf("Wrong context value, got %s expected %s", r.Ctx[1], "bar")
+	if r.KeyValues[1] != "bar" {
+		t.Fatalf("Wrong context value, got %s expected %s", r.KeyValues[1], "bar")
 	}
 }
 
@@ -204,16 +214,16 @@ func TestMapCtx(t *testing.T) {
 	l, _, r := testLogger()
 	l.Fatal("test", Ctx{"foo": "bar"})
 
-	if len(r.Ctx) != 2 {
-		t.Fatalf("Wrong context length, got %d, expected %d", len(r.Ctx), 2)
+	if len(r.KeyValues) != 2 {
+		t.Fatalf("Wrong context length, got %d, expected %d", len(r.KeyValues), 2)
 	}
 
-	if r.Ctx[0] != "foo" {
-		t.Fatalf("Wrong context key, got %s expected %s", r.Ctx[0], "foo")
+	if r.KeyValues[0] != "foo" {
+		t.Fatalf("Wrong context key, got %s expected %s", r.KeyValues[0], "foo")
 	}
 
-	if r.Ctx[1] != "bar" {
-		t.Fatalf("Wrong context value, got %s expected %s", r.Ctx[1], "bar")
+	if r.KeyValues[1] != "bar" {
+		t.Fatalf("Wrong context value, got %s expected %s", r.KeyValues[1], "bar")
 	}
 }
 
@@ -325,11 +335,11 @@ func TestFailoverHandler(t *testing.T) {
 		t.Fatalf("expected failover")
 	}
 
-	if len(r.Ctx) != 4 {
+	if len(r.KeyValues) != 4 {
 		t.Fatalf("expected additional failover ctx")
 	}
 
-	got := r.Ctx[2]
+	got := r.KeyValues[2]
 	expected := "failover_err_0"
 	if got != expected {
 		t.Fatalf("expected failover ctx. got: %s, expected %s", got, expected)
@@ -372,19 +382,19 @@ func TestCallerFileHandler(t *testing.T) {
 	l.Info("baz")
 	_, _, line, _ := runtime.Caller(0)
 
-	if len(r.Ctx) != 2 {
-		t.Fatalf("Expected caller in record context. Got length %d, expected %d", len(r.Ctx), 2)
+	if len(r.KeyValues) != 2 {
+		t.Fatalf("Expected caller in record context. Got length %d, expected %d", len(r.KeyValues), 2)
 	}
 
 	const key = "caller"
 
-	if r.Ctx[0] != key {
-		t.Fatalf("Wrong context key, got %s expected %s", r.Ctx[0], key)
+	if r.KeyValues[0] != key {
+		t.Fatalf("Wrong context key, got %s expected %s", r.KeyValues[0], key)
 	}
 
-	s, ok := r.Ctx[1].(string)
+	s, ok := r.KeyValues[1].(string)
 	if !ok {
-		t.Fatalf("Wrong context value type, got %T expected string", r.Ctx[1])
+		t.Fatalf("Wrong context value type, got %T expected string", r.KeyValues[1])
 	}
 
 	exp := fmt.Sprint("log15_test.go:", line-1)
@@ -402,21 +412,21 @@ func TestCallerFuncHandler(t *testing.T) {
 
 	l.Info("baz")
 
-	if len(r.Ctx) != 2 {
-		t.Fatalf("Expected caller in record context. Got length %d, expected %d", len(r.Ctx), 2)
+	if len(r.KeyValues) != 2 {
+		t.Fatalf("Expected caller in record context. Got length %d, expected %d", len(r.KeyValues), 2)
 	}
 
 	const key = "fn"
 
-	if r.Ctx[0] != key {
-		t.Fatalf("Wrong context key, got %s expected %s", r.Ctx[0], key)
+	if r.KeyValues[0] != key {
+		t.Fatalf("Wrong context key, got %s expected %s", r.KeyValues[0], key)
 	}
 
 	const regex = ".*\\.TestCallerFuncHandler"
 
-	s, ok := r.Ctx[1].(string)
+	s, ok := r.KeyValues[1].(string)
 	if !ok {
-		t.Fatalf("Wrong context value type, got %T expected string", r.Ctx[1])
+		t.Fatalf("Wrong context value type, got %T expected string", r.KeyValues[1])
 	}
 
 	match, err := regexp.MatchString(regex, s)
@@ -447,19 +457,19 @@ func TestCallerStackHandler(t *testing.T) {
 	_, file, line, _ := runtime.Caller(0)
 	lines = append(lines, line-1)
 
-	if len(r.Ctx) != 2 {
-		t.Fatalf("Expected stack in record context. Got length %d, expected %d", len(r.Ctx), 2)
+	if len(r.KeyValues) != 2 {
+		t.Fatalf("Expected stack in record context. Got length %d, expected %d", len(r.KeyValues), 2)
 	}
 
 	const key = "stack"
 
-	if r.Ctx[0] != key {
-		t.Fatalf("Wrong context key, got %s expected %s", r.Ctx[0], key)
+	if r.KeyValues[0] != key {
+		t.Fatalf("Wrong context key, got %s expected %s", r.KeyValues[0], key)
 	}
 
-	s, ok := r.Ctx[1].(string)
+	s, ok := r.KeyValues[1].(string)
 	if !ok {
-		t.Fatalf("Wrong context value type, got %T expected string", r.Ctx[1])
+		t.Fatalf("Wrong context value type, got %T expected string", r.KeyValues[1])
 	}
 
 	exp := "["
@@ -496,7 +506,7 @@ func TestConcurrent(t *testing.T) {
 	const goroutines = 8
 	var res [goroutines]int
 	l.SetHandler(SyncHandler(FuncHandler(func(r *Record) error {
-		res[r.Ctx[ctxLen+1].(int)]++
+		res[r.KeyValues[ctxLen+1].(int)]++
 		return nil
 	})))
 	var wg sync.WaitGroup

@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	log "github.com/inconshreveable/log15"
+	log "github.com/wuzuoliang/log"
 )
 
 // EscalateErrHandler wraps another handler and passes all records through
@@ -30,10 +30,10 @@ import (
 //
 func EscalateErrHandler(h log.Handler) log.Handler {
 	return log.FuncHandler(func(r *log.Record) error {
-		if r.Lvl > log.LvlError {
-			for i := 1; i < len(r.Ctx); i++ {
-				if v, ok := r.Ctx[i].(error); ok && v != nil {
-					r.Lvl = log.LvlError
+		if r.Level > log.LvlError {
+			for i := 1; i < len(r.KeyValues); i++ {
+				if v, ok := r.KeyValues[i].(error); ok && v != nil {
+					r.Level = log.LvlError
 					break
 				}
 			}
@@ -122,7 +122,7 @@ func (h *HotSwap) Swap(newHandler log.Handler) {
 func FatalHandler(h log.Handler) log.Handler {
 	return log.FuncHandler(func(r *log.Record) error {
 		err := h.Log(r)
-		if r.Lvl == log.LvlCrit {
+		if r.Level == log.LvlFatal {
 			os.Exit(1)
 		}
 		return err

@@ -191,7 +191,7 @@ func TestFromRequest(t *testing.T) {
 			req := &http.Request{}
 
 			header := make(http.Header)
-			header.Set(TraceIdHeaderKey, "123456789")
+			header.Set(TraceIDHeaderKey, "123456789")
 			req.Header = header
 
 			id, ok := FromRequest(req)
@@ -240,7 +240,7 @@ func TestFromRequest(t *testing.T) {
 			req = req.WithContext(context.Background())
 
 			header := make(http.Header)
-			header.Set(TraceIdHeaderKey, "123456789")
+			header.Set(TraceIDHeaderKey, "123456789")
 			req.Header = header
 
 			id, ok := FromRequest(req)
@@ -298,7 +298,7 @@ func TestFromRequest(t *testing.T) {
 			req = req.WithContext(ctx)
 
 			header := make(http.Header)
-			header.Set(TraceIdHeaderKey, "123456789")
+			header.Set(TraceIDHeaderKey, "123456789")
 			req.Header = header
 
 			id, ok := FromRequest(req)
@@ -323,7 +323,7 @@ func TestFromHeader(t *testing.T) {
 		}
 	}
 
-	// non-nil header without TraceIdHeaderKey
+	// non-nil header without TraceIDHeaderKey
 	{
 		header := make(http.Header)
 		id, ok := FromHeader(header)
@@ -334,10 +334,10 @@ func TestFromHeader(t *testing.T) {
 		}
 	}
 
-	// non-nil header with empty value for TraceIdHeaderKey
+	// non-nil header with empty value for TraceIDHeaderKey
 	{
 		header := make(http.Header)
-		header.Set(TraceIdHeaderKey, "")
+		header.Set(TraceIDHeaderKey, "")
 		id, ok := FromHeader(header)
 		wantId, wantOk := "", false
 		if id != wantId || ok != wantOk {
@@ -346,10 +346,10 @@ func TestFromHeader(t *testing.T) {
 		}
 	}
 
-	// non-nil header with valid value for TraceIdHeaderKey
+	// non-nil header with valid value for TraceIDHeaderKey
 	{
 		header := make(http.Header)
-		header.Set(TraceIdHeaderKey, "123456789")
+		header.Set(TraceIDHeaderKey, "123456789")
 		id, ok := FromHeader(header)
 		wantId, wantOk := "123456789", true
 		if id != wantId || ok != wantOk {

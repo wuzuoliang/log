@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -58,6 +59,8 @@ func TerminalFormat() Format {
 			color = 32
 		case LvlDebug:
 			color = 36
+		case LvlTrace:
+			color = 30
 		}
 
 		b := &bytes.Buffer{}
@@ -68,14 +71,21 @@ func TerminalFormat() Format {
 			fmt.Fprintf(b, "[%s][%s][%s] %s=%s ", lvl, r.Call.String(), r.Time.Format(termTimeFormat), r.KeyNames.Msg, r.Msg)
 		}
 
+		if r.Ctx != nil && r.Ctx.Value(requestID) != nil {
+			requestID := r.Ctx.Value(requestID).(string)
+			if len(requestID) > 0 {
+				fmt.Fprintf(b, "%s=%s ", r.KeyNames.RequestID, requestID)
+			}
+		}
+
 		// try to justify the log output for short messages
 		// 此处控制的是msg和后续kvalues中间的' '
-		//if len(r.Ctx) > 0 && len(r.Msg) < termMsgJust {
+		//if len(r.KeyValues) > 0 && len(r.Msg) < termMsgJust {
 		//	b.Write(bytes.Repeat([]byte{' '}, termMsgJust-len(r.Msg)))
 		//}
 
 		// print the keys kvaluesfmt style
-		kvaluesfmt(b, r.Ctx, color)
+		kvaluesfmt(b, r.KeyValues, color)
 		return b.Bytes()
 	})
 }
@@ -83,7 +93,7 @@ func TerminalFormat() Format {
 // LogfmtFormat prints records in kvaluesfmt format, an easy machine-parseable but human-readable
 // format for key/value pairs.
 //
-// For more details see: http://godoc.org/github.com/kr/logfmt
+// For more details see: https://pkg.go.dev/github.com/kr/logfmt
 //
 func LogfmtFormat() Format {
 	return FormatFunc(func(r *Record) []byte {
@@ -95,23 +105,31 @@ func LogfmtFormat() Format {
 		}
 
 		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Level, r.Level, r.KeyNames.Call, caller, r.KeyNames.Msg, r.Msg}
+
+		if r.Ctx != nil && r.Ctx.Value(requestID) != nil {
+
+			requestID := r.Ctx.Value(requestID).(string)
+			if len(requestID) > 0 {
+				common = append(common, r.KeyNames.RequestID, requestID)
+			}
+		}
 		buf := &bytes.Buffer{}
-		kvaluesfmt(buf, append(common, r.Ctx...), 0)
+		kvaluesfmt(buf, append(common, r.KeyValues...), 0)
 		return buf.Bytes()
 	})
 }
 
-func kvaluesfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
-	for i := 0; i < len(ctx); i += 2 {
+func kvaluesfmt(buf *bytes.Buffer, KeyValues []interface{}, color int) {
+	for i := 0; i < len(KeyValues); i += 2 {
 		if i != 0 {
 			buf.WriteByte(' ')
 		}
 
-		k, ok := ctx[i].(string)
-		v := formatLogfmtValue(ctx[i+1])
+		k, ok := KeyValues[i].(string)
+		v := formatLogfmtValue(KeyValues[i+1])
 		if !ok {
 			//k, v = errorKey, formatLogfmtValue(k)
-			k, v = errorKey, fmt.Sprintf("%+v is not a string key", ctx[i+1])
+			k, v = errorKey, fmt.Sprintf("%+v is not a string key", KeyValues[i+1])
 		}
 
 		// XXX: we should probably check that all of your key bytes aren't invalid
@@ -158,12 +176,20 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 		props[r.KeyNames.Level] = r.Level.String()
 		props[r.KeyNames.Msg] = r.Msg
 
-		for i := 0; i < len(r.Ctx); i += 2 {
-			k, ok := r.Ctx[i].(string)
-			if !ok {
-				props[errorKey] = fmt.Sprintf("%+v is not a string key", r.Ctx[i])
+		if r.Ctx != nil && r.Ctx.Value(requestID) != nil {
+
+			requestID := r.Ctx.Value(requestID).(string)
+			if len(requestID) > 0 {
+				props[r.KeyNames.RequestID] = requestID
 			}
-			props[k] = formatJsonValue(r.Ctx[i+1])
+		}
+
+		for i := 0; i < len(r.KeyValues); i += 2 {
+			k, ok := r.KeyValues[i].(string)
+			if !ok {
+				props[errorKey] = fmt.Sprintf("%+v is not a string key", r.KeyValues[i])
+			}
+			props[k] = formatJsonValue(r.KeyValues[i+1])
 		}
 
 		b, err := jsonMarshal(props)
@@ -292,4 +318,46 @@ func escapeString(s string) string {
 	e.Reset()
 	stringBufPool.Put(e)
 	return ret
+}
+
+// JSON is a helper function, following is its function code.
+//
+//  data, _ := json.Marshal(v)
+//  return string(data)
+func JSON(v interface{}) string {
+	pool := getBytesBufferPool()
+	buffer := pool.Get()
+	defer pool.Put(buffer)
+	buffer.Reset()
+
+	if err := json.NewEncoder(buffer).Encode(v); err != nil {
+		return ""
+	}
+	data := buffer.Bytes()
+
+	// remove the trailing newline
+	i := len(data) - 1
+	if i < 0 || i >= len(data) /* BCE */ {
+		return ""
+	}
+	if data[i] == '\n' {
+		data = data[:i]
+	}
+	return string(data)
+}
+
+// XML is a helper function, following is its function code.
+//
+//  data, _ := xml.Marshal(v)
+//  return string(data)
+func XML(v interface{}) string {
+	pool := getBytesBufferPool()
+	buffer := pool.Get()
+	defer pool.Put(buffer)
+	buffer.Reset()
+
+	if err := xml.NewEncoder(buffer).Encode(v); err != nil {
+		return ""
+	}
+	return string(buffer.Bytes())
 }

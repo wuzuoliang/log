@@ -41,24 +41,24 @@ func LazyHandler(h Handler) Handler {
 		// go through the values (odd indices) and reassign
 		// the values of any lazy fn to the result of its execution
 		hadErr := false
-		for i := 1; i < len(r.Ctx); i += 2 {
-			lz, ok := r.Ctx[i].(Lazy)
+		for i := 1; i < len(r.KeyValues); i += 2 {
+			lz, ok := r.KeyValues[i].(Lazy)
 			if ok {
 				v, err := evaluateLazy(lz)
 				if err != nil {
 					hadErr = true
-					r.Ctx[i] = err
+					r.KeyValues[i] = err
 				} else {
 					if cs, ok := v.(stack.CallStack); ok {
 						v = cs.TrimBelow(r.Call).TrimRuntime()
 					}
-					r.Ctx[i] = v
+					r.KeyValues[i] = v
 				}
 			}
 		}
 
 		if hadErr {
-			r.Ctx = append(r.Ctx, errorKey, "bad lazy")
+			r.KeyValues = append(r.KeyValues, errorKey, "bad lazy")
 		}
 
 		return h.Log(r)
@@ -115,50 +115,10 @@ func NetHandler(network, addr string, fmtr Format) (Handler, error) {
 	return closingHandler{conn, StreamHandler(conn, fmtr)}, nil
 }
 
-// storage rotate file parameters
-type RotateOption struct {
-	MaxSize       int
-	MaxAge        int
-	MaxBackup     int
-	Compress      bool
-	DayRotate     bool
-	IO_WritePoint *lumberjack.Logger
-}
-
-var rotateConf = &RotateOption{100, 10, 30, true, true, nil}
-
-// change rotate conf manually
-func SetRotatePara(maxSize, maxAge, maxBackUp int, compress, dayRotate bool) {
-	rotateConf.setRotatePara(maxSize, maxAge, maxBackUp, compress, dayRotate)
-}
-func (r *RotateOption) setRotatePara(maxSize, maxAge, maxBackUp int, compress, dayRotate bool) {
-	r.MaxSize, r.MaxAge, r.MaxBackup, r.Compress, r.DayRotate = maxSize, maxAge, maxBackUp, compress, dayRotate
-}
-
-func (r *RotateOption) setLoggerWriteCloser(f *lumberjack.Logger) {
-	r.IO_WritePoint = f
-}
-
-func (r *RotateOption) getLoggerWriteCloser() *lumberjack.Logger {
-	return r.IO_WritePoint
-}
-
-// only use FileHandlerRotate and rotateConf.IO_WritePoint not nil can manually rotate
-func LogRotate() {
-	if rotateConf.IO_WritePoint != nil {
-		rotateConf.getLoggerWriteCloser().Rotate()
-	}
-}
-
-func FileHandlerRotate(path string, fmtr Format) (Handler, error) {
-	f := lumberjack.NewLogger(path, lumberjack.RotateOption{
-		MaxSize:    rotateConf.MaxSize,
-		MaxAge:     rotateConf.MaxAge,
-		MaxBackups: rotateConf.MaxBackup,
-		LocalTime:  true,
-		Compress:   rotateConf.Compress,
-		DayRotate:  rotateConf.DayRotate})
-	rotateConf.setLoggerWriteCloser(&f)
+// FileHandlerRotate add lumberjack lib
+func FileHandlerRotate(output string, fmtr Format, options []RotateOptions) (Handler, error) {
+	f := lumberjack.NewLogger(output, lumberjack.DefaultRotateOption())
+	SetDefaultRotateOptions(append(options, SetOutput(&f)))
 	return closingHandler{&f, StreamHandler(&f, fmtr)}, nil
 }
 
@@ -178,7 +138,7 @@ func (h *closingHandler) Close() error {
 // the calling function to the context with key "caller".
 func CallerFileHandler(h Handler) Handler {
 	return FuncHandler(func(r *Record) error {
-		r.Ctx = append(r.Ctx, "caller", fmt.Sprint(r.Call))
+		r.KeyValues = append(r.KeyValues, "caller", fmt.Sprint(r.Call))
 		return h.Log(r)
 	})
 }
@@ -187,7 +147,7 @@ func CallerFileHandler(h Handler) Handler {
 // the context with key "fn".
 func CallerFuncHandler(h Handler) Handler {
 	return FuncHandler(func(r *Record) error {
-		r.Ctx = append(r.Ctx, "fn", fmt.Sprintf("%+n", r.Call))
+		r.KeyValues = append(r.KeyValues, "fn", fmt.Sprintf("%+n", r.Call))
 		return h.Log(r)
 	})
 }
@@ -201,7 +161,7 @@ func CallerStackHandler(format string, h Handler) Handler {
 	return FuncHandler(func(r *Record) error {
 		s := stack.Trace().TrimBelow(r.Call).TrimRuntime()
 		if len(s) > 0 {
-			r.Ctx = append(r.Ctx, "stack", fmt.Sprintf(format, s))
+			r.KeyValues = append(r.KeyValues, "stack", fmt.Sprintf(format, s))
 		}
 		return h.Log(r)
 	})
@@ -247,9 +207,9 @@ func MatchFilterHandler(key string, value interface{}, h Handler) Handler {
 			return r.Msg == value
 		}
 
-		for i := 0; i < len(r.Ctx); i += 2 {
-			if r.Ctx[i] == key {
-				return r.Ctx[i+1] == value
+		for i := 0; i < len(r.KeyValues); i += 2 {
+			if r.KeyValues[i] == key {
+				return r.KeyValues[i+1] == value
 			}
 		}
 		return false
@@ -311,7 +271,7 @@ func FailoverHandler(hs ...Handler) Handler {
 			if err == nil {
 				return nil
 			} else {
-				r.Ctx = append(r.Ctx, fmt.Sprintf("failover_err_%d", i), err)
+				r.KeyValues = append(r.KeyValues, fmt.Sprintf("failover_err_%d", i), err)
 			}
 		}
 
@@ -397,4 +357,17 @@ func (h *swapHandler) Swap(newHandler Handler) {
 
 func (h *swapHandler) Get() Handler {
 	return *h.handler.Load().(*Handler)
+}
+
+// Lazy allows you to defer calculation of a logged value that is expensive
+// to compute until it is certain that it must be evaluated with the given filters.
+//
+// Lazy may also be used in conjunction with a Logger's New() function
+// to generate a child logger which always reports the current value of changing
+// state.
+//
+// You may wrap any function which takes no arguments to Lazy. It may return any
+// number of values of any type.
+type Lazy struct {
+	Fn interface{}
 }

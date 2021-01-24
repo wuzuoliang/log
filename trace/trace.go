@@ -42,7 +42,7 @@ func FromRequest(req *http.Request) (traceId string, ok bool) {
 	return FromHeader(req.Header)
 }
 
-const TraceIDHeaderKey = "X-Request-ID"
+const TraceIDHeaderKey = "request_id"
 
 func FromHeader(header http.Header) (traceId string, ok bool) {
 	traceId = header.Get(TraceIDHeaderKey)
