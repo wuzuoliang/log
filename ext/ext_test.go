@@ -2,7 +2,7 @@ package ext
 
 import (
 	"errors"
-	log "github.com/inconshreveable/log15"
+	"github.com/wuzuoliang/log"
 	"math"
 	"testing"
 )
@@ -52,8 +52,8 @@ func TestSpeculativeHandler(t *testing.T) {
 			expectedCount := int(math.Min(float64(count), float64(100)))
 			expectedIdx := count - expectedCount
 			for r := range recs {
-				if r.Ctx[1] != expectedIdx {
-					t.Errorf("Bad ctx 'i', got %d expected %d", r.Ctx[1], expectedIdx)
+				if r.KeyValues[1] != expectedIdx {
+					t.Errorf("Bad KeyValues 'i', got %d expected %d", r.KeyValues[1], expectedIdx)
 					return
 				}
 				expectedIdx++

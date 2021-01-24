@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -8,30 +9,38 @@ import (
 )
 
 const (
+	/**
+	日志关键字段，Key信息
+	*/
 	timeKey     = "time"
 	levelKey    = "level"
 	msgKey      = "msg"
 	locationKey = "location"
 	errorKey    = "error"
+	requestID   = "request_id"
 )
 
+// Level 日志级别
 type Level int
 
 const (
-	LvlFatal Level = iota
+	LvlFatal = iota
 	LvlError
 	LvlWarn
 	LvlInfo
 	LvlDebug
+	LvlTrace
 
 	LvlFatalStr = "fatal"
 	LvlErrorStr = "error"
 	LvlWarnStr  = "warn"
 	LvlInfoStr  = "info"
 	LvlDebugStr = "debug"
+	LvlTraceStr = "trace"
 )
 
 var levelStringMap = map[Level]string{
+	LvlTrace: LvlTraceStr,
 	LvlFatal: LvlFatalStr,
 	LvlError: LvlErrorStr,
 	LvlWarn:  LvlWarnStr,
@@ -54,23 +63,26 @@ type Record struct {
 	Time         time.Time
 	Level        Level
 	Msg          string
-	Ctx          []interface{}
+	KeyValues    []interface{}
+	Ctx          context.Context
 	Call         stack.Call
 	CustomCaller string
 	KeyNames     RecordKeyNames
 }
 
+// RecordKeyNames 日志记录规则字段名
 type RecordKeyNames struct {
-	Time  string
-	Msg   string
-	Level string
-	Call  string
+	Time      string
+	Msg       string
+	Level     string
+	Call      string
+	RequestID string
 }
 
 // A Logger writes key/value pairs to a Handler
 type Logger interface {
 	// New returns a new Logger that has this logger's context plus the given context
-	New(ctx ...interface{}) Logger
+	New(keyValues ...interface{}) Logger
 
 	// GetHandler gets the handler associated with the logger.
 	GetHandler() Handler
@@ -83,44 +95,74 @@ type Logger interface {
 	GetOutLevel() Level
 
 	// Log a message at the given level with context key/value pairs
+	Log(msg string, fields ...interface{})
 	Debug(msg string, fields ...interface{})
 	Info(msg string, fields ...interface{})
 	Warn(msg string, fields ...interface{})
 	Error(msg string, fields ...interface{})
 	Fatal(msg string, fields ...interface{})
+
+	// LogContext a message at the given level with context key/value pairs
+	LogContext(ctx context.Context, msg string, fields ...interface{})
+	DebugContext(ctx context.Context, msg string, fields ...interface{})
+	InfoContext(ctx context.Context, msg string, fields ...interface{})
+	WarnContext(ctx context.Context, msg string, fields ...interface{})
+	ErrorContext(ctx context.Context, msg string, fields ...interface{})
+	FatalContext(ctx context.Context, msg string, fields ...interface{})
 }
 
 type logger struct {
-	ctx     []interface{}
-	handler *swapHandler
-	level   Level
+	KeyValues []interface{}
+	handler   *swapHandler
+	level     Level
 }
 
 func (l *logger) write(msg string, level Level, fields []interface{}) {
 	if level <= l.level {
 		l.handler.Log(&Record{
-			Time:  time.Now(),
-			Level: level,
-			Msg:   msg,
-			Ctx:   newContext(l.ctx, fields),
-			Call:  stack.Caller(2),
+			Time:      time.Now(),
+			Level:     level,
+			Msg:       msg,
+			KeyValues: newKeyValues(l.KeyValues, fields),
+			Call:      stack.Caller(2),
 			KeyNames: RecordKeyNames{
-				Time:  timeKey,
-				Msg:   msgKey,
-				Level: levelKey,
-				Call:  locationKey,
+				Time:      timeKey,
+				Msg:       msgKey,
+				Level:     levelKey,
+				Call:      locationKey,
+				RequestID: requestID,
 			},
 		})
 	}
 }
 
-func (l *logger) New(ctx ...interface{}) Logger {
-	child := &logger{newContext(l.ctx, ctx), new(swapHandler), LvlDebug}
+func (l *logger) writeContext(ctx context.Context, msg string, level Level, fields []interface{}) {
+	if level <= l.level {
+		l.handler.Log(&Record{
+			Ctx:       ctx,
+			Time:      time.Now(),
+			Level:     level,
+			Msg:       msg,
+			KeyValues: newKeyValues(l.KeyValues, fields),
+			Call:      stack.Caller(2),
+			KeyNames: RecordKeyNames{
+				Time:      timeKey,
+				Msg:       msgKey,
+				Level:     levelKey,
+				Call:      locationKey,
+				RequestID: requestID,
+			},
+		})
+	}
+}
+
+func (l *logger) New(keyValues ...interface{}) Logger {
+	child := &logger{newKeyValues(l.KeyValues, keyValues), new(swapHandler), LvlTrace}
 	child.SetHandler(l.handler)
 	return child
 }
 
-func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
+func newKeyValues(prefix []interface{}, suffix []interface{}) []interface{} {
 	normalizedSuffix := normalize(suffix)
 	newCtx := make([]interface{}, len(prefix)+len(normalizedSuffix))
 	n := copy(newCtx, prefix)
@@ -129,13 +171,17 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 }
 
 func (l *logger) SetOutLevel(level Level) {
-	if level >= LvlFatal && level <= LvlDebug {
+	if level >= LvlFatal && level <= LvlTrace {
 		l.level = level
 	}
 }
 
 func (l *logger) GetOutLevel() Level {
 	return l.level
+}
+
+func (l *logger) Log(msg string, fields ...interface{}) {
+	l.write(msg, LvlTrace, fields)
 }
 
 func (l *logger) Debug(msg string, fields ...interface{}) {
@@ -156,6 +202,31 @@ func (l *logger) Error(msg string, fields ...interface{}) {
 
 func (l *logger) Fatal(msg string, fields ...interface{}) {
 	l.write(msg, LvlFatal, fields)
+	os.Exit(1)
+}
+
+func (l *logger) LogContext(ctx context.Context, msg string, fields ...interface{}) {
+	l.writeContext(ctx, msg, LvlTrace, fields)
+}
+
+func (l *logger) DebugContext(ctx context.Context, msg string, fields ...interface{}) {
+	l.writeContext(ctx, msg, LvlDebug, fields)
+}
+
+func (l *logger) InfoContext(ctx context.Context, msg string, fields ...interface{}) {
+	l.writeContext(ctx, msg, LvlInfo, fields)
+}
+
+func (l *logger) WarnContext(ctx context.Context, msg string, fields ...interface{}) {
+	l.writeContext(ctx, msg, LvlWarn, fields)
+}
+
+func (l *logger) ErrorContext(ctx context.Context, msg string, fields ...interface{}) {
+	l.writeContext(ctx, msg, LvlError, fields)
+}
+
+func (l *logger) FatalContext(ctx context.Context, msg string, fields ...interface{}) {
+	l.writeContext(ctx, msg, LvlFatal, fields)
 	os.Exit(1)
 }
 
@@ -185,19 +256,6 @@ func normalize(ctx []interface{}) []interface{} {
 	}
 
 	return ctx
-}
-
-// Lazy allows you to defer calculation of a logged value that is expensive
-// to compute until it is certain that it must be evaluated with the given filters.
-//
-// Lazy may also be used in conjunction with a Logger's New() function
-// to generate a child logger which always reports the current value of changing
-// state.
-//
-// You may wrap any function which takes no arguments to Lazy. It may return any
-// number of values of any type.
-type Lazy struct {
-	Fn interface{}
 }
 
 // Ctx is a map of key/value pairs to pass as context to a log function
