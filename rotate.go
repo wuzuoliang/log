@@ -1,7 +1,7 @@
 package log
 
 import (
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/wuzuoliang/log/lumberjack.v2"
 	"sync/atomic"
 	"unsafe"
 )

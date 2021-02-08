@@ -3,7 +3,7 @@ package log
 import (
 	"fmt"
 	"github.com/go-stack/stack"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/wuzuoliang/log/lumberjack.v2"
 	"io"
 	"net"
 	"os"
